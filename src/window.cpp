@@ -4,6 +4,10 @@
 #include <shader_manager.hpp>
 namespace engine
 {
+    void Window::updateProjectionMatrix()
+    {
+        projectionMatrix_ = glm::ortho(0.0f, static_cast<float>(width_), 0.0f, static_cast<float>(height_));
+    }
     Window::Window(int width, int height, const char *title)
     {
         if (!engine::isOpenGLInitialized())
@@ -29,11 +33,19 @@ namespace engine
         glfwMakeContextCurrent(window);
         glfwSetFramebufferSizeCallback(window, [](GLFWwindow *win, int w, int h)
                                        {
-                                          Window *window = getActiveWindow();
-                                          if (window && window->framebufferSizeCallback_)
-                                          {
-                                              window->framebufferSizeCallback_(w, h);
-                                          } });
+                                                                                    Window *window = getActiveWindow();
+                                                                                    if (window)
+                                                                                    {
+                                                                                        glViewport(0, 0, w, h);
+                                                                                        window->setWidth(w);
+                                                                                        window->setHeight(h);
+                                                                                        window->updateProjectionMatrix();
+                                                                                        if (window->framebufferSizeCallback_)
+                                                                                        {
+                                                                                            window->framebufferSizeCallback_(w, h);
+                                                                                        }
+                                                                                    } 
+                                        });
         log("Initializing GLAD");
         if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
         {
@@ -41,6 +53,9 @@ namespace engine
             terminateOpenGL();
             return;
         }
+        glViewport(0, 0, width, height);
+        width_ = width;
+        height_ = height;
         setActiveWindow(this);
         log("Loading shaders");
         shader_manager::loadAllShaders();
@@ -76,21 +91,35 @@ namespace engine
     void Window::loop()
     {
         log("Starting window loop");
+        updateProjectionMatrix();
         if (initCallback_)
         {
             initCallback_();
         }
+        std::vector<Shader *> &shaders = shader_manager::getAllShaders();
         while (!shouldClose())
         {
+            float startTime = glfwGetTime();
+
             input.windowInput(window_);
-            glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-            glClear(GL_COLOR_BUFFER_BIT);
+            //glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+            //glClear(GL_COLOR_BUFFER_BIT);
+            for (auto shader : shaders)
+            {
+                shader->use();
+                shader->setFloat("time", time);
+                shader->setFloat("deltaTime", deltaTime);
+                shader->setMat4("projection", projectionMatrix_);
+            }
             if (loopCallback_)
             {
                 loopCallback_();
             }
             glfwSwapBuffers(window_);
             glfwPollEvents();
+            float endTime = glfwGetTime();
+            deltaTime = endTime - startTime;
+            time = glfwGetTime();
         }
     }
     GLFWwindow *Window::getGLFWwindow() const

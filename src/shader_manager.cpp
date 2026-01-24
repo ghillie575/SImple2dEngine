@@ -55,5 +55,9 @@ namespace engine
             }
             shaders.clear();
         }
+        std::vector<Shader *> &getAllShaders()
+        {
+            return shaders;
+        }
     } // namespace shader_manager
 } // namespace engine

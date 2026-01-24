@@ -50,7 +50,30 @@ void ResourceManager::deleteAll()
             vbo->free();
     }
     vbos.clear();
+    for (auto ebo : ebos)
+    {
+        if (ebo)
+            ebo->free();
+    }
+    ebos.clear();
     shader_manager::clearAllShaders();
+}
+void ResourceManager::registerEBO(EBO *ebo)
+{
+    ebos.push_back(ebo);
+}
+void ResourceManager::removeEBO(EBO *ebo)
+{
+    for (auto it = ebos.begin(); it != ebos.end(); ++it)
+    {
+        if (*it == ebo)
+        {
+            if (*it)
+                (*it)->free();
+            ebos.erase(it);
+            break;
+        }
+    }
 }
 ResourceManager *globalResourceManager = new ResourceManager();
 ResourceManager *engine::getGlobalResourceManager()
