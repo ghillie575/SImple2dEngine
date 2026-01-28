@@ -8,8 +8,13 @@
 #include <resource_manager.hpp>
 #include <texture.hpp>
 #include <transform.hpp>
+#include <functional>
+#include <glm/glm.hpp>
+#include <vector>
+#include <string>
 namespace engine
 {
+ 
     struct VertexAttribute
     {
         int size;
@@ -60,11 +65,25 @@ namespace engine
         void setTexture(std::string texturePath);
         void intialize();
         void render();
+        void setAnchorPoint(AnchorPoint point)
+        {
+            anchorPoint = point;
+        }
+        AnchorPoint getAnchorPoint() const
+        {
+            return anchorPoint;
+        }
         void addVertexAttribute(const VertexAttribute &attribute)
         {
             vertexAttributes.push_back(attribute);
         }
         Transform *transform;
+        glm::vec4 color;
+        
+    // Click handling
+    void setOnClickCallback(std::function<void()> callback) { onClickCallback = callback; }
+    bool isPointInside(double x, double y) const;
+    void onClick();
 
     private:
         std::string shaderName;
@@ -79,5 +98,7 @@ namespace engine
         std::vector<float> vertexData;
         std::vector<unsigned int> indices;
         std::vector<VertexAttribute> vertexAttributes;
+        AnchorPoint anchorPoint = TOP_LEFT;
+        std::function<void()> onClickCallback;
     };
 } // namespace engine

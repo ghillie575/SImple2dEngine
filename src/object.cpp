@@ -7,6 +7,11 @@ using namespace engine;
 void Object::intialize()
 {
     shader = engine::shader_manager::getShader(shaderName);
+    if (!shader)
+    {
+        error("Shader " + shaderName + " not found for object " + objectId);
+        return;
+    }
     // Initialize VAO, VBO, and EBO
     vao.create();
     vbo->create();
@@ -45,7 +50,8 @@ void Object::render()
     if (shader)
     {
         shader->use();
-        shader->setMat4("transform", transform->getModelMatrix());
+        shader->setMat4("transform", transform->getModelMatrix(anchorPoint));
+        shader->setVec4("color", color);
     }
     if (hasTexture && texture)
     {
@@ -61,4 +67,31 @@ void Object::render()
     }
     vao.bind();
     glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(vertexData.size() / vertexAttributes.size()));
+}
+bool Object::isPointInside(double x, double y) const
+{
+    // Get object bounds in screen space
+    glm::vec2 pos = transform->getPosition();
+    glm::vec2 scale = transform->getScale();
+
+    // Calculate half-width and half-height
+    float halfWidth = scale.x / 2.0f;
+    float halfHeight = scale.y / 2.0f;
+
+    // Check if point is within axis-aligned bounding box
+    // Note: This is simplified AABB collision, doesn't account for rotation
+    float minX = pos.x - halfWidth;
+    float maxX = pos.x + halfWidth;
+    float minY = pos.y - halfHeight;
+    float maxY = pos.y + halfHeight;
+
+    return x >= minX && x <= maxX && y >= minY && y <= maxY;
+}
+
+void Object::onClick()
+{
+    if (onClickCallback)
+    {
+        onClickCallback();
+    }
 }

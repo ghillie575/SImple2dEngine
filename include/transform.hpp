@@ -2,6 +2,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <anchor_point.hpp>
 namespace engine
 {
 
@@ -9,7 +10,8 @@ namespace engine
     {
     public:
         Transform(glm::vec2 position = glm::vec2(0.0f, 0.0f), float rotation = 0.0f, glm::vec2 scale = glm::vec2(1.0f, 1.0f)) : position(position), rotation(rotation), scale(scale), zIndex(0) {}
-        glm::mat4 getModelMatrix() const;
+        glm::mat4 getModelMatrix(AnchorPoint anchorPoint) const;
+        glm::vec2 getRawPosition(AnchorPoint anchorPoint) const;
         void setPosition(const glm::vec2 &pos) { position = pos; }
         glm::vec2 getPosition() const { return position; }
         void setRotation(float rot) { rotation = rot; }

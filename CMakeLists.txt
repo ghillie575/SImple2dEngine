@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.10.0)
 project(2dengine VERSION 0.1.0 LANGUAGES C CXX)
+
 include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${CMAKE_SOURCE_DIR}/scenes)
 
 # Find GLFW from system
 find_package(glfw3 REQUIRED)
@@ -27,17 +29,47 @@ FetchContent_Declare(
     GIT_TAG 0.9.9.8 # or another stable version
 )
 FetchContent_MakeAvailable(glm)
+include(FetchContent)
+
+FetchContent_Declare(
+    chipmunk
+    GIT_REPOSITORY https://codeberg.org/slembcke/Chipmunk2D.git
+    GIT_TAG master
+)
+FetchContent_MakeAvailable(chipmunk)
+FetchContent_Declare(
+    enet
+    GIT_REPOSITORY https://github.com/lsalzman/enet.git
+    GIT_TAG        v1.3.18
+)
+
+# Disable ENet examples/tests
+set(ENET_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(ENET_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+
+FetchContent_MakeAvailable(enet)
 # Add stb_image as a library
 add_library(stb_image INTERFACE)
 target_include_directories(stb_image INTERFACE ${stb_SOURCE_DIR})
 
 file(GLOB SOURCES "${CMAKE_SOURCE_DIR}/src/*.cpp")
-add_executable(2dengine main.cpp ${SOURCES})
-target_link_libraries(2dengine PRIVATE glfw glad stb_image glm)
-
+file(GLOB SOURCES_PHYS "${CMAKE_SOURCE_DIR}/src/physics/*.cpp")
+file(GLOB SOURCES_NET "${CMAKE_SOURCE_DIR}/src/network/*.cpp")
+file(GLOB SCENES "${CMAKE_SOURCE_DIR}/src/scenes/*.cpp")
+add_executable(2dengine main.cpp ${SOURCES} ${SCENES} ${SOURCES_PHYS} ${SOURCES_NET})
+target_include_directories(2dengine PRIVATE ${chipmunk_SOURCE_DIR}/include)
+target_link_libraries(2dengine PRIVATE glfw glad stb_image glm chipmunk enet)
+target_include_directories(2dengine PRIVATE ${enet_SOURCE_DIR}/include)
 include(CTest)
 enable_testing()
 
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
 include(CPack)
+add_subdirectory(${CMAKE_SOURCE_DIR}/server)
+add_custom_command(TARGET 2dengine POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    ${CMAKE_SOURCE_DIR}/shaders
+    ${CMAKE_BINARY_DIR}/shaders
+    COMMENT "Copying shader files..."
+)

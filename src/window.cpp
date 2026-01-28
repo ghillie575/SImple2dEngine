@@ -21,6 +21,8 @@ namespace engine
             }
         }
         log("Creating GLFW window: " + std::string(title));
+        glfwWindowHint(GLFW_DOUBLEBUFFER, GLFW_TRUE);
+        glfwWindowHint(GLFW_SAMPLES, 0);
         GLFWwindow *window = glfwCreateWindow(width, height, title, NULL, NULL);
         if (window == NULL)
         {
@@ -31,6 +33,7 @@ namespace engine
         }
         window_ = window;
         glfwMakeContextCurrent(window);
+        glfwSwapInterval(1); // Enable V-Sync
         glfwSetFramebufferSizeCallback(window, [](GLFWwindow *win, int w, int h)
                                        {
                                                                                     Window *window = getActiveWindow();
@@ -44,8 +47,7 @@ namespace engine
                                                                                         {
                                                                                             window->framebufferSizeCallback_(w, h);
                                                                                         }
-                                                                                    } 
-                                        });
+                                                                                    } });
         log("Initializing GLAD");
         if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
         {
@@ -54,6 +56,9 @@ namespace engine
             return;
         }
         glViewport(0, 0, width, height);
+        glDisable(GL_DEPTH_TEST);
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         width_ = width;
         height_ = height;
         setActiveWindow(this);
@@ -97,13 +102,26 @@ namespace engine
             initCallback_();
         }
         std::vector<Shader *> &shaders = shader_manager::getAllShaders();
+        const float FIXED_TIMESTEP = 1.0f / 60.0f; // Physics at 60Hz
+        float accumulator = 0.0f;
+        float lastTime = glfwGetTime();
+
         while (!shouldClose())
         {
-            float startTime = glfwGetTime();
+            float currentTime = glfwGetTime();
+            float frameTime = currentTime - lastTime;
+            lastTime = currentTime;
+
+            if (frameTime > 0.25f)
+                frameTime = 0.25f;
 
             input.windowInput(window_);
-            //glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-            //glClear(GL_COLOR_BUFFER_BIT);
+            glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+            glClear(GL_COLOR_BUFFER_BIT);
+
+            time = currentTime;
+            deltaTime = frameTime;
+
             for (auto shader : shaders)
             {
                 shader->use();
@@ -111,15 +129,17 @@ namespace engine
                 shader->setFloat("deltaTime", deltaTime);
                 shader->setMat4("projection", projectionMatrix_);
             }
+
             if (loopCallback_)
             {
                 loopCallback_();
             }
+
             glfwSwapBuffers(window_);
             glfwPollEvents();
-            float endTime = glfwGetTime();
-            deltaTime = endTime - startTime;
-            time = glfwGetTime();
+
+            std::cout << "FPS: " << 1.0f / frameTime << "\r" << std::flush;
+            deltaTime = frameTime;
         }
     }
     GLFWwindow *Window::getGLFWwindow() const

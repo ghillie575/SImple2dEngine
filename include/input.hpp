@@ -135,8 +135,21 @@ namespace engine
     public:
         void windowInput(GLFWwindow *window);
         void setKeyPressedCallback(std::function<void(Key)> callback);
+        void setMouseClickCallback(std::function<void(double, double)> callback);
+        void setMouseReleaseCallback(std::function<void(double, double)> callback);
+        
+        // Get current mouse position
+        double getMouseX() const { return mouseX; }
+        double getMouseY() const { return mouseY; }
+        bool isMouseButtonPressed(int button) const;
+        
     private:
         static bool isKeyPressed(Key key);
         std::function<void(Key)> keyPressedCallback_;
+        std::function<void(double, double)> mouseClickCallback_;
+        std::function<void(double, double)> mouseReleaseCallback_;
+        double mouseX = 0.0;
+        double mouseY = 0.0;
+        bool lastMouseState = false;
     };
 } // namespace engine
