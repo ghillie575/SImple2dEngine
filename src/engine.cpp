@@ -3,7 +3,20 @@
 #include <engine.hpp>
 #include <logger.hpp>
 #include <resource_manager.hpp>
+FT_Library ftLibrary;
 bool isOpenGLInitializedFlag = false;
+void engine::initializeFreeType()
+{
+    log("Initializing FreeType library");
+    if (FT_Init_FreeType(&ftLibrary))
+    {
+        error("Could not initialize FreeType Library");
+    }
+}
+FT_Library &engine::getFreeTypeLibrary()
+{
+    return ftLibrary;
+}
 bool engine::isOpenGLInitialized()
 {
     return isOpenGLInitializedFlag;
@@ -27,6 +40,7 @@ void engine::terminateOpenGL()
 {
     log("Cleaning up resources");
     getGlobalResourceManager()->deleteAll();
+    FT_Done_FreeType(ftLibrary);
     log("Terminating OpenGL");
     glfwTerminate();
     isOpenGLInitializedFlag = false;

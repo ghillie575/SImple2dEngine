@@ -4,6 +4,9 @@ project(2dengine VERSION 0.1.0 LANGUAGES C CXX)
 include_directories(${CMAKE_SOURCE_DIR}/include)
 include_directories(${CMAKE_SOURCE_DIR}/scenes)
 
+# Find FreeType from system
+find_package(Freetype REQUIRED)
+
 # Find GLFW from system
 find_package(glfw3 REQUIRED)
 
@@ -58,7 +61,8 @@ file(GLOB SOURCES_NET "${CMAKE_SOURCE_DIR}/src/network/*.cpp")
 file(GLOB SCENES "${CMAKE_SOURCE_DIR}/src/scenes/*.cpp")
 add_executable(2dengine main.cpp ${SOURCES} ${SCENES} ${SOURCES_PHYS} ${SOURCES_NET})
 target_include_directories(2dengine PRIVATE ${chipmunk_SOURCE_DIR}/include)
-target_link_libraries(2dengine PRIVATE glfw glad stb_image glm chipmunk enet)
+target_include_directories(2dengine PRIVATE ${FREETYPE_INCLUDE_DIRS})
+target_link_libraries(2dengine PRIVATE glfw glad stb_image glm chipmunk enet Freetype::Freetype)
 target_include_directories(2dengine PRIVATE ${enet_SOURCE_DIR}/include)
 include(CTest)
 enable_testing()
@@ -72,4 +76,10 @@ add_custom_command(TARGET 2dengine POST_BUILD
     ${CMAKE_SOURCE_DIR}/shaders
     ${CMAKE_BINARY_DIR}/shaders
     COMMENT "Copying shader files..."
+)
+add_custom_command(TARGET 2dengine POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    ${CMAKE_SOURCE_DIR}/fonts
+    ${CMAKE_BINARY_DIR}/fonts
+    COMMENT "Copying font files..."
 )

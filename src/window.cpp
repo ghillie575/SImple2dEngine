@@ -13,6 +13,7 @@ namespace engine
         if (!engine::isOpenGLInitialized())
         {
             initializeOpenGL();
+            initializeFreeType();
             if (!engine::isOpenGLInitialized())
             {
                 error("Could not initialize OpenGL before creating window");

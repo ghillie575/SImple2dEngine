@@ -1,0 +1,8 @@
+{
+  "name": "SImple2dEngine",
+  "version-string": "0.1.0",
+  "dependencies": [
+    "freetype",
+    "glfw3"
+  ]
+}

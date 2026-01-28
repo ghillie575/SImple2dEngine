@@ -1,7 +1,7 @@
 #include <iostream>
 #include <window.hpp>
 #include <input.hpp>
-#include <demo_scene.hpp>
+#include <network_scene.hpp>
 
 using namespace engine;
 
