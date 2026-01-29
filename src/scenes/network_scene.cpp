@@ -19,6 +19,7 @@ std::string currentPlayerName;
 std::map<std::string, Object *> objectMap;
 std::map<std::string, TextBox *> playerNames;
 TextBox *infoBox;
+TextBox *scoreBox;
 std::vector<float> vertices = {
     0.5f, 0.5f, 0.0f,
     0.5f, -0.5f, 0.0f,
@@ -139,16 +140,25 @@ void updateClient()
         client->update();
     }
 }
+void OnScoreUpdate(const ScoreUpdatePacket &scorePkt)
+{
+    log("Received score update packet: " + std::to_string(scorePkt.scoreA) + " - " + std::to_string(scorePkt.scoreB));
+    scoreBox->setText("Score: " + std::to_string(scorePkt.scoreA) + " - " + std::to_string(scorePkt.scoreB));
+}
 void Scene::initialize()
 {
-    infoBox = new TextBox("text", "Connecting to server...", "base.ttf", 0.5f, glm::vec2(10.0f, windowHeight - 50.0f));
+    infoBox = new TextBox("text", "Connecting to server...", "base.ttf", 0.5f, glm::vec2(10.0f, windowHeight - 22.5f));
     infoBox->initialize();
+    scoreBox = new TextBox("text", "Score: 0 - 0", "base.ttf", 0.5f, glm::vec2(100.0f, windowHeight - 22.5f));
+    scoreBox->initialize();
     log("Connecting to server...");
     client = new NetworkClient("localhost", 7680);
     client->onObjectCreate(OnObjectCreate);
     client->onObjectDestroy(OnObjectDestroy);
     client->onPositionUpdate(OnPositionUpdate);
     client->setPlayerCreateCallback(OnPlayerCreate);
+    client->setScoreUpdateCallback(OnScoreUpdate);
+
     std::thread([this]()
                 {
         try
@@ -194,6 +204,7 @@ void Scene::render()
         infoBox->setText("FPS: " + std::to_string(static_cast<int>(1.0 / getActiveWindow()->deltaTime)));
         infoBox->render();
     }
+    scoreBox->render();
 }
 void Scene::onWindowResize(int width, int height)
 {

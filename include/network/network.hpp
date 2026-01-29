@@ -16,7 +16,8 @@ enum class PacketType : uint8_t
     ObjectTexturedPacket = 5,
     ObjectCreatePacket = 6,
     ObjectDestroyPacket = 7,
-    PlayerCreatePacket = 8
+    PlayerCreatePacket = 8,
+    ScoreUpdatePacket = 9
 };
 
 struct NetPositionPacket
@@ -37,6 +38,11 @@ struct PlayerCreatePacket
 struct NetKeyPacket
 {
     uint8_t key;
+};
+struct ScoreUpdatePacket
+{
+    int scoreA;
+    int scoreB;
 };
 
 struct NetJoinPacket
@@ -156,6 +162,7 @@ public:
     {
         afterClientLeaveCallback = callback;
     }
+    void sendScoreUpdate(const ScoreUpdatePacket &scorePkt, ServerClient *target = nullptr);
     ENetHost *server;
     std::recursive_mutex enetMutex; // Use recursive_mutex
 
@@ -185,9 +192,13 @@ public:
     {
         positionUpdateCallback = callback;
     }
-    void setPlayerCreateCallback(void (*callback)(const PlayerCreatePacket &,bool))
+    void setPlayerCreateCallback(void (*callback)(const PlayerCreatePacket &, bool))
     {
         playerCreateCallback = callback;
+    }
+    void setScoreUpdateCallback(void (*callback)(const ScoreUpdatePacket &))
+    {
+        scoreUpdateCallback = callback;
     }
     void connect();
     void sendKeyEvent(uint8_t key);
@@ -202,5 +213,6 @@ private:
     void (*objectCreateCallback)(const ObjectCreatePacket &);
     void (*objectDestroyCallback)(const ObjectDestroyPacket &);
     void (*positionUpdateCallback)(const NetPositionPacket &);
-    void (*playerCreateCallback)(const PlayerCreatePacket &,bool);
+    void (*playerCreateCallback)(const PlayerCreatePacket &, bool);
+    void (*scoreUpdateCallback)(const ScoreUpdatePacket &);
 };

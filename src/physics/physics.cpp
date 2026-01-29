@@ -24,15 +24,15 @@ void PhysicsWorld::addStaticBody(StaticBody *body)
 {
     cpSpaceAddShape(space, body->shape);
 }
-RigidBody::RigidBody(cpSpace *space, const glm::vec2 &position, float mass, float width, float height)
+RigidBody::RigidBody(cpSpace *space, const glm::vec2 &position, float mass, float width, float height, const std::string &name, float bounciness) : Body(name)
 {
     cpFloat moment = cpMomentForBox(mass, width / PPM, height / PPM);
     body = cpBodyNew(mass, moment);
     cpBodySetPosition(body, glmToCp(position));
-    float x = glmToCp(glm::vec2(position.x + width / 2.0f, position.y + height / 2.0f)).x; // Debug log
-    float y = glmToCp(glm::vec2(position.x + width / 2.0f, position.y + height / 2.0f)).y; // Debug log
     shape = cpBoxShapeNew(body, width / PPM, height / PPM, 0.0f);
+    cpShapeSetElasticity(shape, static_cast<cpFloat>(bounciness) / 100.0f);
     cpShapeSetFriction(shape, 0.7f);
+    cpShapeSetUserData(shape, this);
 }
 RigidBody::~RigidBody()
 {
@@ -51,12 +51,14 @@ float RigidBody::getAngle() const
 {
     return cpBodyGetAngle(body);
 }
-StaticBody::StaticBody(cpSpace *space, float width, float height, glm::vec2 center) : space(space)
+StaticBody::StaticBody(cpSpace *space, float width, float height, glm::vec2 center, const std::string &name, float bounciness) : space(space), Body(name)
 {
     cpBody *staticBody = cpSpaceGetStaticBody(space);
     shape = cpBoxShapeNew(staticBody, width / PPM, height / PPM, 0.0f);
     cpShapeSetFriction(shape, 0.7f);
+    cpShapeSetElasticity(shape, static_cast<cpFloat>(bounciness) / 100.0f);
     cpBodySetPosition(staticBody, glmToCp(center));
+    cpShapeSetUserData(shape, this);
 }
 StaticBody::~StaticBody()
 {
@@ -74,4 +76,23 @@ void PhysicsWorld::removeRigidBody(RigidBody *body)
 void PhysicsWorld::removeStaticBody(StaticBody *body)
 {
     cpSpaceRemoveShape(space, body->shape);
+}
+void PhysicsWorld::setCollisionCallback(std::function<void(void *, void *)> cb)
+{
+    collisionCallback = cb;
+    cpCollisionHandler *handler = cpSpaceAddDefaultCollisionHandler(space);
+    handler->beginFunc = collisionHandler;
+    handler->userData = this;
+}
+cpBool PhysicsWorld::collisionHandler(cpArbiter *arb, cpSpace *space, void *userData)
+{
+    PhysicsWorld *world = static_cast<PhysicsWorld *>(userData);
+    if (world->collisionCallback)
+    {
+        cpShape *shapeA;
+        cpShape *shapeB;
+        cpArbiterGetShapes(arb, &shapeA, &shapeB);
+        world->collisionCallback(cpShapeGetUserData(shapeA), cpShapeGetUserData(shapeB));
+    }
+    return cpTrue;
 }

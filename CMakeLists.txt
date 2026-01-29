@@ -4,11 +4,36 @@ project(2dengine VERSION 0.1.0 LANGUAGES C CXX)
 include_directories(${CMAKE_SOURCE_DIR}/include)
 include_directories(${CMAKE_SOURCE_DIR}/scenes)
 
-# Find FreeType from system
-find_package(Freetype REQUIRED)
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pthread")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
 
-# Find GLFW from system
-find_package(glfw3 REQUIRED)
+# Find FreeType from system or fetch if not found
+find_package(Freetype QUIET)
+if(NOT Freetype_FOUND)
+    message(STATUS "FreeType not found, fetching with FetchContent...")
+    include(FetchContent)
+    FetchContent_Declare(
+        freetype
+        GIT_REPOSITORY https://gitlab.freedesktop.org/freetype/freetype.git
+        GIT_TAG master
+    )
+    FetchContent_MakeAvailable(freetype)
+    set(FREETYPE_INCLUDE_DIRS ${freetype_SOURCE_DIR}/include)
+    add_library(Freetype::Freetype ALIAS freetype)
+endif()
+
+# Find GLFW from system or fetch if not found
+find_package(glfw3 QUIET)
+if(NOT glfw3_FOUND)
+    message(STATUS "GLFW not found, fetching with FetchContent...")
+    include(FetchContent)
+    FetchContent_Declare(
+        glfw
+        GIT_REPOSITORY https://github.com/glfw/glfw.git
+        GIT_TAG 3.4
+    )
+    FetchContent_MakeAvailable(glfw)
+endif()
 
 # Fetch GLAD
 include(FetchContent)
@@ -43,7 +68,7 @@ FetchContent_MakeAvailable(chipmunk)
 FetchContent_Declare(
     enet
     GIT_REPOSITORY https://github.com/lsalzman/enet.git
-    GIT_TAG        v1.3.18
+    GIT_TAG v1.3.18
 )
 
 # Disable ENet examples/tests

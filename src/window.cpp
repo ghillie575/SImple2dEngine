@@ -23,7 +23,8 @@ namespace engine
         }
         log("Creating GLFW window: " + std::string(title));
         glfwWindowHint(GLFW_DOUBLEBUFFER, GLFW_TRUE);
-        glfwWindowHint(GLFW_SAMPLES, 0);
+        glfwWindowHint(GLFW_SAMPLES, 16); // 16x MSAA
+
         GLFWwindow *window = glfwCreateWindow(width, height, title, NULL, NULL);
         if (window == NULL)
         {
@@ -59,6 +60,7 @@ namespace engine
         glViewport(0, 0, width, height);
         glDisable(GL_DEPTH_TEST);
         glEnable(GL_BLEND);
+        glEnable(GL_MULTISAMPLE);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         width_ = width;
         height_ = height;

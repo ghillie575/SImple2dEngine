@@ -78,6 +78,13 @@ void NetworkClient::update()
                     playerCreateCallback(playerPkt, playerCreated);
                 }
             }
+            else if (pktType == PacketType::ScoreUpdatePacket && scoreUpdateCallback)
+            {
+                ScoreUpdatePacket scorePkt;
+                scorePkt.scoreA = reader.read<int>();
+                scorePkt.scoreB = reader.read<int>();
+                scoreUpdateCallback(scorePkt);
+            }
             enet_packet_destroy(event.packet);
         }
     }
@@ -176,7 +183,7 @@ void NetworkServer::update()
             {
                 if (it->peer == event.peer)
                 {
-                    
+
                     onClientLeaveCallback(&(*it));
                     std::string name = it->name;
                     clients.erase(it);
@@ -207,7 +214,6 @@ void NetworkServer::sendPositionUpdate(const NetPositionPacket &posPkt)
 
 void NetworkServer::broadcastPacket(const std::vector<uint8_t> &data, ENetPeer *excludedPeer)
 {
-    // Assumes mutex is already locked by caller
     for (auto &client : clients)
     {
         if (client.peer != excludedPeer)
@@ -216,7 +222,22 @@ void NetworkServer::broadcastPacket(const std::vector<uint8_t> &data, ENetPeer *
         }
     }
 }
-
+void NetworkServer::sendScoreUpdate(const ScoreUpdatePacket &scorePkt, ServerClient *target)
+{
+    std::lock_guard<std::recursive_mutex> lock(enetMutex);
+    PacketWriter writer;
+    writer.write<PacketType>(PacketType::ScoreUpdatePacket);
+    writer.write<int>(scorePkt.scoreA);
+    writer.write<int>(scorePkt.scoreB);
+    if(target)
+    {
+        target->sendPacket(writer.data);
+        enet_host_flush(server);
+        return;
+    }
+    broadcastPacket(writer.data);
+    enet_host_flush(server);
+}
 void NetworkServer::sendObjectDestroy(const std::string &name)
 {
     std::lock_guard<std::recursive_mutex> lock(enetMutex);

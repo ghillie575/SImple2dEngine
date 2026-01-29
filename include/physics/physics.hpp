@@ -4,6 +4,8 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <chipmunk/chipmunk.h>
 #include <vector>
+#include <string>
+#include <functional>
 namespace engine
 {
     constexpr float PPM = 50.0f; // Pixels Per Meter
@@ -15,10 +17,17 @@ namespace engine
     {
         return glm::vec2(v.x * PPM, v.y * PPM);
     }
-    class RigidBody
+    class Body
     {
     public:
-        RigidBody(cpSpace *space, const glm::vec2 &position, float mass, float width, float height);
+        std::string name;
+        Body(std::string name) : name(name) {}
+        virtual ~Body() {}
+    };
+    class RigidBody : public Body
+    {
+    public:
+        RigidBody(cpSpace *space, const glm::vec2 &position, float mass, float width, float height, const std::string &name, float bounciness = 0);
         ~RigidBody();
         void applyForce(const glm::vec2 &force);
         glm::vec2 getPosition() const;
@@ -37,16 +46,21 @@ namespace engine
             cpBodySetVelocity(body, cpvzero);
             cpBodySetAngularVelocity(body, 0.0f);
         }
+        void setPosition(const glm::vec2 &position)
+        {
+            cpBodySetPosition(body, glmToCp(position));
+        }
         cpBody *body;
         cpShape *shape;
     };
-    class StaticBody
+
+    class StaticBody : public Body
     {
     public:
-        StaticBody(cpSpace *space, float width, float height, glm::vec2 center);
+        StaticBody(cpSpace *space, float width, float height, glm::vec2 center, const std::string &name = "", float bounciness = 0);
         ~StaticBody();
         cpShape *shape;
-        cpSpace *space;  // Store reference to space for cleanup
+        cpSpace *space;
     };
     class PhysicsWorld
     {
@@ -61,8 +75,12 @@ namespace engine
         void removeRigidBody(RigidBody *body);
         void removeStaticBody(StaticBody *body);
 
+        void setCollisionCallback(std::function<void(void *, void *)> cb);
+
     private:
         cpSpace *space;
+        std::function<void(void *, void *)> collisionCallback;
+        static cpBool collisionHandler(cpArbiter *arb, cpSpace *space, void *userData);
     };
 
 };

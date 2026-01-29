@@ -11,9 +11,12 @@ StaticBody *groundBody;
 StaticBody *leftWallBody;
 StaticBody *rightWallBody;
 StaticBody *topWallBody;
-RigidBody *dynamicBody1;
+StaticBody *leftGateBody;
+StaticBody *rightGateBody;
 RigidBody *dynamicBody;
 NetworkServer *server;
+int scoreA = 0;
+int scoreB = 0;
 enum Key
 {
     KEY_UNKNOWN = -1,
@@ -173,12 +176,14 @@ void onClientJoin(ServerClient *client)
 {
     log("Client joined: " + client->name);
 
-    server->sendObjectCreate({"box1", {0, 0}, {50, 50}, 0, "base"}, client);
-    server->sendObjectCreate({"box2", {0, 0}, {50, 50}, 0, "base"}, client);
+    server->sendObjectCreate({"box1", {0, 0}, {20, 20}, 0, "base"}, client);
     server->sendObjectCreate({"ground", {400, 0}, {5000, 50}, 0, "base"}, client);
     server->sendObjectCreate({"leftWall", {0, 400}, {50, 5000}, 0, "base"}, client);
     server->sendObjectCreate({"rightWall", {800, 400}, {50, 5000}, 0, "base"}, client);
     server->sendObjectCreate({"topWall", {400, 800}, {5000, 50}, 0, "base"}, client);
+    server->sendObjectCreate({"leftGate", {60, 400}, {20, 100}, 0, "base"}, client);
+    server->sendObjectCreate({"rightGate", {740, 400}, {20, 100}, 0, "base"}, client);
+    server->sendScoreUpdate({scoreA, scoreB}, client);
     PlayerCreatePacket playerPacket;
     playerPacket.name = client->name;
     playerPacket.position = {400, 400};
@@ -188,7 +193,7 @@ void onClientJoin(ServerClient *client)
     server->sendPlayerCreate(playerPacket, client);
     server->sendPlayerCreate(playerPacket, nullptr);
     RigidBody *playerBody = new RigidBody(physicsWorld.getSpace(), glm::vec2(400, 400),
-                                          0.3f, 50, 50);
+                                          0.3f, 50, 50, client->name, 0);
     playerBody->disableRotation();
     physicsWorld.addRigidBody(playerBody);
     players.push_back({client->name, playerBody});
@@ -203,7 +208,7 @@ void onClientJoin(ServerClient *client)
             pkt.rotation = 0;
             pkt.shader = "base";
 
-            server->sendPlayerCreate(pkt, nullptr);
+            server->sendPlayerCreate(pkt, client);
         }
     }
 }
@@ -232,6 +237,61 @@ void onKeyEvent(ServerClient *client, uint8_t key)
         }
     }
 }
+void OnCollision(void *a, void *b)
+{
+    std::string name1;
+    std::string name2;
+    RigidBody *bodyA = static_cast<RigidBody *>(static_cast<Body *>(a));
+    RigidBody *bodyB = static_cast<RigidBody *>(static_cast<Body *>(b));
+    if (!bodyA)
+    {
+        bodyA = nullptr;
+        StaticBody *staticA = dynamic_cast<StaticBody *>(static_cast<Body *>(a));
+        name1 = staticA->name;
+    }
+    else
+    {
+        name1 = bodyA->name;
+    }
+    if (!bodyB)
+    {
+        bodyB = nullptr;
+        StaticBody *staticB = dynamic_cast<StaticBody *>(static_cast<Body *>(b));
+        name2 = staticB->name;
+    }
+    else
+    {
+        name2 = bodyB->name;
+    }
+    if (name1 == "leftGate" || name2 == "leftGate")
+    {
+        if (name1 == "box1" || name2 == "box1")
+        {
+            dynamicBody->setPosition(glm::vec2(400, 400));
+            dynamicBody->resetVelocity();
+            scoreA++;
+            log("Score A: " + std::to_string(scoreA) + " | Score B: " + std::to_string(scoreB));
+            ScoreUpdatePacket pkt;
+            pkt.scoreA = scoreA;
+            pkt.scoreB = scoreB;
+            server->sendScoreUpdate(pkt);
+        }
+    }
+    if (name1 == "rightGate" || name2 == "rightGate")
+    {
+        if (name1 == "box1" || name2 == "box1")
+        {
+            dynamicBody->setPosition(glm::vec2(400, 400));
+            dynamicBody->resetVelocity();
+            scoreB++;
+            log("Score A: " + std::to_string(scoreA) + " | Score B: " + std::to_string(scoreB));
+            ScoreUpdatePacket pkt;
+            pkt.scoreA = scoreA;
+            pkt.scoreB = scoreB;
+            server->sendScoreUpdate(pkt);
+        }
+    }
+}
 int main(int, char **)
 {
 
@@ -240,23 +300,27 @@ int main(int, char **)
     physicsWorld.init(0);
 
     groundBody = new StaticBody(physicsWorld.getSpace(),
-                                5000, 50, glm::vec2(400, 0));
+                                5000, 50, glm::vec2(400, 0), "ground", 100);
     physicsWorld.addStaticBody(groundBody);
     leftWallBody = new StaticBody(physicsWorld.getSpace(),
-                                  50, 5000, glm::vec2(0, 400));
+                                  50, 5000, glm::vec2(0, 400), "leftWall", 100);
     physicsWorld.addStaticBody(leftWallBody);
     rightWallBody = new StaticBody(physicsWorld.getSpace(),
-                                   50, 5000, glm::vec2(800, 400));
+                                   50, 5000, glm::vec2(800, 400), "rightWall", 100);
     physicsWorld.addStaticBody(rightWallBody);
     topWallBody = new StaticBody(physicsWorld.getSpace(),
-                                 5000, 50, glm::vec2(400, 800));
+                                 5000, 50, glm::vec2(400, 800), "topWall", 100);
     physicsWorld.addStaticBody(topWallBody);
-    dynamicBody1 = new RigidBody(physicsWorld.getSpace(), glm::vec2(400, 300),
-                                 0.3f, 50, 50);
-    physicsWorld.addRigidBody(dynamicBody1);
     dynamicBody = new RigidBody(physicsWorld.getSpace(), glm::vec2(200, 300),
-                                0.3f, 50, 50);
+                                0.3f, 20, 20, "box1", 100);
     physicsWorld.addRigidBody(dynamicBody);
+    leftGateBody = new StaticBody(physicsWorld.getSpace(),
+                                  20, 100, glm::vec2(60, 400), "leftGate");
+    physicsWorld.addStaticBody(leftGateBody);
+    rightGateBody = new StaticBody(physicsWorld.getSpace(),
+                                   20, 100, glm::vec2(740, 400), "rightGate");
+    physicsWorld.addStaticBody(rightGateBody);
+    physicsWorld.setCollisionCallback(OnCollision);
     log("Starting Server");
     server = new NetworkServer(7680);
     server->setOnClientJoinCallback(onClientJoin);
@@ -270,7 +334,6 @@ int main(int, char **)
     {
         physicsWorld.step(1.0f / 60.0f);
         server->sendPositionUpdate({dynamicBody->getPosition(), static_cast<float>(dynamicBody->getRotation() * 180.0f / M_PI), "box1"});
-        server->sendPositionUpdate({dynamicBody1->getPosition(), static_cast<float>(dynamicBody1->getRotation() * 180.0f / M_PI), "box2"});
         for (const auto &player : players)
         {
             server->sendPositionUpdate({player.body->getPosition(), static_cast<float>(player.body->getRotation() * 180.0f / M_PI), player.name});
